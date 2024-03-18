@@ -22,7 +22,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const password = generateRandomPassword();
     const dateCreated = new Date().toISOString(); // Store the creation date in ISO format
     const credential = { email, password, dateCreated };
-    console.log("credential: ", credential);
+
     chrome.storage.sync.get("credentials", (data) => {
       const updatedCredentials = [...data.credentials, credential];
       chrome.storage.sync.set({ credentials: updatedCredentials }, () => {
@@ -37,5 +37,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse(latestCredential);
     });
     return true; // Indicates that the response is asynchronous
+  } else if (request.action === "fill-email") {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tabId = tabs[0].id;
+      chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+        console.log("changeInfo.status: ", changeInfo.status);
+
+        if (changeInfo.status === "complete") {
+          chrome.tabs.onUpdated.removeListener(listener); // Remove the listener after the tab is updated
+          chrome.tabs.sendMessage(tabId, { action: "fill-email" }, (response) => {
+            if (response) {
+              sendResponse({ status: response.status });
+            } else if (chrome.runtime.lastError) {
+              console.error(chrome.runtime.lastError.message);
+            }
+          });
+        }
+      });
+      return true;
+    });
+    return true; // Keep the message channel open
   }
 });

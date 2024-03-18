@@ -3,7 +3,7 @@
   "name": "Random Email Generator",
   "version": "1.0",
   "description": "Generate random email IDs and keep track of them",
-  "permissions": ["storage", "clipboardWrite"],
+  "permissions": ["storage", "tabs", "clipboardWrite"],
   "background": {
     "service_worker": "background.js"
   },
