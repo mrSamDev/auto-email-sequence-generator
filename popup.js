@@ -1,72 +1,65 @@
-function focusOnTab(tabId) {
-  chrome.tabs.update(tabId, { active: true });
-}
+document.addEventListener("DOMContentLoaded", () => {
+  const generateButton = document.getElementById("generateCredentials");
+  const credentialsList = document.getElementById("credentialsList");
 
-function closeTab(tabId) {
-  chrome.tabs.remove(tabId);
-  const elementToRemove = document.getElementById(tabId);
-  elementToRemove.remove();
-}
-
-function updateResults() {
-  const searchTerm = searchInput.value.toLowerCase();
-
-  chrome.tabs.query({}, function (tabs) {
-    console.log("tabs: ", tabs);
-    let resultsHTML = "";
-
-    for (const tab of tabs) {
-      const title = tab.title.toLowerCase();
-      if (title.includes(searchTerm)) {
-        resultsHTML += `
-        <div data-tabid=${tab.id} id=${tab.id} class="max-w-xs w-full bg-white shadow-lg rounded-lg overflow-hidden flex flex-col items-start gap-4 p-4">
-       <div class="flex flex-row gap-4">
-
-        <img  width=100 height=50 src=${tab.favIconUrl} alt="Placeholder Image" class="object-contain w-8" >
-        <h2 class="text-base font-semibold">${tab.title}</h2>
-     
-        </div>
-        <a href=${tab.url} class="text-gray-600">${tab.url}</a>
-        <div class="flex justify-between mt-4 gap-2">
-        <button data-tabid="${tab.id}"  class="mt-2 px-4 py-2 bg-blue-500 text-white font-semibold rounded hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300" >Go to Tab</button>
-        <button data-closetabid="${tab.id}" class="mt-2 px-4 py-2 bg-red-500 text-white font-semibold rounded hover:bg-red-600 focus:outline-none focus:ring focus:ring-red-300" data-tabid="1">Close Tab</button>
-        </div>
-
-        <div class="mt-4">
-        <img src="" alt="Tab Preview" class="w-full rounded shadow-md hidden" id=${tab.id}>
-    </div>
-
-        </div>
-        `;
-      }
-    }
-
-    resultsContainer.innerHTML = resultsHTML;
-
-    document.querySelectorAll("[data-tabid]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        const tabId = parseInt(button.getAttribute("data-tabid"));
-        if (!isNaN(tabId)) {
-          focusOnTab(tabId);
-        }
-      });
-    });
-    document.querySelectorAll("[data-closetabid]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        const tabId = parseInt(button.getAttribute("data-closetabid"));
-        if (!isNaN(tabId)) {
-          closeTab(tabId);
-          updateResults();
-        }
-      });
+  // Load and display existing credentials
+  chrome.storage.sync.get("credentials", ({ credentials }) => {
+    credentials.forEach(({ email, password, dateCreated }) => {
+      addCredentialToList(email, password, dateCreated);
     });
   });
-}
 
-document.addEventListener("DOMContentLoaded", function () {
-  const searchInput = document.getElementById("searchInput");
-  searchInput.addEventListener("input", updateResults);
-  updateResults();
+  generateButton.addEventListener("click", () => {
+    chrome.runtime.sendMessage({ action: "generateCredentials" }, (response) => {
+      const { credential: { email, password, dateCreated } = {} } = response;
+      console.log("email, password, dateCreated: ", email, password, dateCreated);
+      addCredentialToList(email, password, dateCreated);
+
+      // Optional: Save the new credentials to chrome.storage for persistent storage
+    });
+  });
+
+  function addCredentialToList(email, password, dateCreated) {
+    const li = document.createElement("li");
+    li.className = "flex flex-col md:flex-row justify-between items-center credential-item p-2 md:p-4 rounded-md space-y-2 md:space-y-0";
+
+    // Format the date
+    const date = new Date(dateCreated);
+    const formattedDate = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(date);
+
+    li.innerHTML = `
+      <div class="font-mono text-sm flex-grow">
+        <div>Email: <span class="email-text">${email}</span></div>
+        <div>Password: <span class="password-text">${password}</span></div>
+        <div>Date: <span class="date-text">${formattedDate}</span></div>
+      </div>
+      <div class="flex flex-row md:flex-col md:space-y-1 space-x-1 md:space-x-0">
+        <button class="copy-btn text-white font-bold py-1 px-2 text-xs rounded" data-credential="${email}" data-type="email">
+          Copy Email
+        </button>
+        <button class="copy-btn text-white font-bold py-1 px-2 text-xs rounded" data-credential="${password}" data-type="password">
+          Copy Password
+        </button>
+      </div>
+    `;
+
+    credentialsList.appendChild(li);
+  }
+
+  // Event listener for copy buttons
+  credentialsList.addEventListener("click", (event) => {
+    if (event.target.classList.contains("copyBtn")) {
+      const credential = event.target.getAttribute("data-credential");
+      navigator.clipboard
+        .writeText(credential)
+        .then(() => {
+          // Provide feedback, e.g., changing the button text temporarily
+          event.target.textContent = "Copied!";
+          setTimeout(() => {
+            event.target.textContent = event.target.textContent.includes("Email") ? "Copy Email" : "Copy Password";
+          }, 2000);
+        })
+        .catch((err) => console.error("Error copying credentials:", err));
+    }
+  });
 });
-
-// Add event listeners to trigger the update when input changes

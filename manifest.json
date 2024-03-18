@@ -1,10 +1,13 @@
 {
-  "manifest_version": 2,
-  "name": "TabSearch Pro",
+  "manifest_version": 3,
+  "name": "Random Email Generator",
   "version": "1.0",
-  "description": "Searchopen tabs in Chrome ",
-  "permissions": ["tabs"],
-  "browser_action": {
+  "description": "Generate random email IDs and keep track of them",
+  "permissions": ["storage", "clipboardWrite"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
     "default_popup": "popup.html",
     "default_icon": {
       "16": "images/icon16.png",
@@ -12,15 +15,15 @@
       "96": "images/icon96.png"
     }
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
   "icons": {
     "16": "images/icon16.png",
     "48": "images/icon48.png",
     "96": "images/icon96.png"
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["popup.js"]
-    }
-  ]
+  }
 }
