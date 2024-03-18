@@ -4,7 +4,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 function generateRandomEmail() {
   const randomPart = Math.random().toString(36).substring(2, 15);
-  return `sijo.sam+${randomPart}@diagnal.com`;
+  return `xx.xx+${randomPart}@xx.com`;
 }
 
 function generateRandomPassword() {
